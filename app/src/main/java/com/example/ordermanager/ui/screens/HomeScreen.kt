@@ -6,25 +6,32 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ordermanager.ui.theme.*
+import com.example.ordermanager.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    authViewModel: AuthViewModel,
     isDarkMode: Boolean,
-    onLogout: () -> Unit,
     onToggleTheme: () -> Unit
 ) {
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
+    val userName = authState.currentUser?.nombres ?: authState.currentUser?.usuario ?: "Usuario"
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Dashboard", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("Bienvenido", style = MaterialTheme.typography.titleLarge) },
                 actions = {
                     IconButton(onClick = onToggleTheme) {
                         Icon(
@@ -51,35 +58,49 @@ fun HomeScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "¡Bienvenido, Chef!",
+                text = "¡Bienvenido, $userName!",
                 style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
             )
+
             Spacer(modifier = Modifier.height(Spacing.sm))
+
             Text(
-                text = "Tu cocina está lista para el servicio.",
+                text = "Has iniciado sesión correctamente.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
-            
-            Spacer(modifier = Modifier.height(Spacing.threeXl))
-            
+
+            Spacer(modifier = Modifier.height(Spacing.fourXl))
+
             Button(
-                onClick = onLogout,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                onClick = { authViewModel.navigateToRegister() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(Icons.Default.PersonAdd, contentDescription = null)
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text("Registrar Nuevo Usuario")
+            }
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            OutlinedButton(
+                onClick = { authViewModel.logout() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
             ) {
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
                 Spacer(modifier = Modifier.width(Spacing.sm))
                 Text("Cerrar Sesión")
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    OrderManagerTheme {
-        HomeScreen(isDarkMode = false, onLogout = {}, onToggleTheme = {})
     }
 }

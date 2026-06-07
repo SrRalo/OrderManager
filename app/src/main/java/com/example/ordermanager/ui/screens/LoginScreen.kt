@@ -3,18 +3,19 @@ package com.example.ordermanager.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -23,73 +24,35 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ordermanager.ui.theme.*
+import com.example.ordermanager.ui.viewmodel.AuthViewModel
 
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+fun LoginScreen(authViewModel: AuthViewModel) {
+    val uiState by authViewModel.loginUiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.twoXl),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(Spacing.fiveXl))
 
-        // Header: Logo and Name
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Restaurant,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(Spacing.twoXl)
-            )
-            Spacer(modifier = Modifier.width(Spacing.sm))
-            Text(
-                text = "Order Manager",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Spacer(modifier = Modifier.height(Spacing.fourXl))
-
-        // Circular Icon Placeholder
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
-        ) {
-            // Placeholder for the cloche icon
-            Icon(
-                imageVector = Icons.Default.Restaurant,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(60.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(Spacing.threeXl))
-
-        // Welcome Text
         Text(
-            text = "Bienvenido de nuevo, Chef",
-            style = MaterialTheme.typography.displayMedium.copy(fontSize = 20.sp),
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
+            text = "Iniciar Sesión",
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.primary
         )
+
+        Spacer(modifier = Modifier.height(Spacing.md))
+
         Text(
-            text = "Gestiona tu cocina con facilidad",
+            text = "Accede a tu cuenta",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -97,11 +60,11 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
         Spacer(modifier = Modifier.height(Spacing.fourXl))
 
-        // Email Field
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            placeholder = { Text("Correo Electrónico", color = TextSecondary) },
+            value = uiState.username,
+            onValueChange = { authViewModel.updateLoginUsername(it) },
+            label = { Text("Usuario o Correo") },
+            placeholder = { Text("Usuario o Correo") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp),
@@ -113,18 +76,18 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
             ),
             trailingIcon = {
-                Icon(Icons.Default.Email, contentDescription = null, tint = TextSecondary)
+                Icon(Icons.Default.Person, contentDescription = null, tint = TextSecondary)
             },
             singleLine = true
         )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        // Password Field
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Contraseña", color = TextSecondary) },
+            value = uiState.password,
+            onValueChange = { authViewModel.updateLoginPassword(it) },
+            label = { Text("Contraseña") },
+            placeholder = { Text("Contraseña") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp),
@@ -142,23 +105,22 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(Spacing.md))
-
-        // Forgot Password
-        Text(
-            text = "¿Olvidaste tu contraseña?",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .align(Alignment.End)
-                .clickable { /* TODO */ }
-        )
+        if (uiState.errorMessage != null) {
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            Text(
+                text = uiState.errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         Spacer(modifier = Modifier.height(Spacing.threeXl))
 
-        // Login Button
         Button(
-            onClick = onLoginSuccess,
+            onClick = { authViewModel.login() },
+            enabled = !uiState.isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -167,31 +129,38 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    "Iniciar Sesión",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
                 )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        "Ingresar",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(Spacing.threeXl))
 
-        // Footer: Sign Up
         Text(
             text = buildAnnotatedString {
                 append("¿No tienes una cuenta? ")
-                withStyle(style = SpanStyle(color = Warning, fontWeight = FontWeight.Bold)) {
+                withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
                     append("Regístrate")
                 }
             },
@@ -199,7 +168,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             color = TextSecondary,
             modifier = Modifier
                 .padding(bottom = Spacing.twoXl)
-                .clickable { /* TODO */ }
+                .clickable { authViewModel.navigateToRegister() }
         )
     }
 }
@@ -208,6 +177,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 @Composable
 fun LoginScreenPreview() {
     OrderManagerTheme {
-        LoginScreen(onLoginSuccess = {})
+        LoginScreen(authViewModel = AuthViewModel(android.app.Application()))
     }
 }
