@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class Screen { LOGIN, HOME, REGISTER }
+enum class Screen { SPLASH, WELCOME, LOGIN, HOME, REGISTER }
 
 data class LoginUiState(
     val username: String = "",
@@ -37,7 +37,7 @@ data class RegisterUiState(
 
 data class AuthState(
     val currentUser: UsuarioEntity? = null,
-    val currentScreen: Screen = Screen.LOGIN
+    val currentScreen: Screen = Screen.SPLASH
 )
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
@@ -209,6 +209,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
             )
         }
+    }
+
+    fun navigateToWelcome() {
+        _authState.update { it.copy(currentScreen = Screen.WELCOME) }
     }
 
     fun navigateToRegister() {

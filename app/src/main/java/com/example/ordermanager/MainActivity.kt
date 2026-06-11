@@ -12,6 +12,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ordermanager.ui.screens.HomeScreen
 import com.example.ordermanager.ui.screens.LoginScreen
 import com.example.ordermanager.ui.screens.RegisterScreen
+import com.example.ordermanager.ui.screens.SplashScreen
+import com.example.ordermanager.ui.screens.WelcomeScreen
 import com.example.ordermanager.ui.theme.OrderManagerTheme
 import com.example.ordermanager.ui.viewmodel.AuthViewModel
 import com.example.ordermanager.ui.viewmodel.Screen
@@ -46,8 +48,15 @@ fun MainApp(
 ) {
     val authState by authViewModel.authState.collectAsStateWithLifecycle()
 
-    Crossfade(targetState = authState.currentScreen, label = "ScreenTransition") { screen ->
+        Crossfade(targetState = authState.currentScreen, label = "ScreenTransition") { screen ->
         when (screen) {
+            Screen.SPLASH -> SplashScreen(
+                onSplashFinished = { authViewModel.navigateToWelcome() }
+            )
+            Screen.WELCOME -> WelcomeScreen(
+                onNavigateToLogin = { authViewModel.navigateToLogin() },
+                onNavigateToRegister = { authViewModel.navigateToRegister() }
+            )
             Screen.LOGIN -> LoginScreen(authViewModel = authViewModel)
             Screen.HOME -> HomeScreen(
                 authViewModel = authViewModel,
