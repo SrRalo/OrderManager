@@ -1,8 +1,9 @@
 package com.example.ordermanager.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.PersonAdd
@@ -11,10 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.ordermanager.ui.components.OutlinedPrimaryButton
+import com.example.ordermanager.ui.components.PrimaryButton
 import com.example.ordermanager.ui.theme.*
 
 @Composable
@@ -22,11 +25,22 @@ fun WelcomeScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
+    var startAnimation by remember { mutableStateOf(false) }
+
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(800),
+        label = "contentAlpha"
+    )
+
+    LaunchedEffect(Unit) { startAnimation = true }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = Spacing.twoXl),
+            .padding(horizontal = Spacing.twoXl)
+            .alpha(contentAlpha),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(80.dp))
@@ -58,60 +72,26 @@ fun WelcomeScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
+        PrimaryButton(
+            text = "Iniciar Sesión",
             onClick = onNavigateToLogin,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(Radius.lg),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    "Iniciar Sesión",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = Color.White
-                )
-            }
-        }
+            height = 56
+        )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        OutlinedButton(
+        OutlinedPrimaryButton(
+            text = "Registrarse",
             onClick = onNavigateToRegister,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(Radius.lg)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
+            height = 56,
+            leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.PersonAdd,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    "Registrarse",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
             }
-        }
+        )
 
         Spacer(modifier = Modifier.height(Spacing.fiveXl))
     }

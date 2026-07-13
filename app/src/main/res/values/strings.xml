@@ -1,3 +1,89 @@
 <resources>
     <string name="app_name">OrderManager</string>
+
+    <!-- General -->
+    <string name="cancelar">Cancelar</string>
+    <string name="confirmar">Confirmar</string>
+    <string name="guardar">Guardar</string>
+    <string name="reintentar">Reintentar</string>
+    <string name="cerrar_sesion">Cerrar Sesión</string>
+
+    <!-- Splash -->
+    <string name="app_tagline">OrderManager</string>
+
+    <!-- Welcome -->
+    <string name="iniciar_sesion">Iniciar Sesión</string>
+    <string name="registrarse">Registrarse</string>
+    <string name="welcome_subtitle">Gestiona tus pedidos de forma rápida y sencilla</string>
+
+    <!-- Login -->
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="login_subtitle">Accede a tu cuenta</string>
+    <string name="username_label">Usuario o Correo</string>
+    <string name="password_label">Contraseña</string>
+    <string name="login_button">Ingresar</string>
+    <string name="login_register_hint">¿No tienes una cuenta? </string>
+    <string name="login_register_action">Regístrate</string>
+
+    <!-- Register -->
+    <string name="register_title">Registrar Nuevo Usuario</string>
+    <string name="register_nombres">Nombres</string>
+    <string name="register_nombres_placeholder">Nombres completos</string>
+    <string name="register_correo">Correo Electrónico</string>
+    <string name="register_correo_placeholder">correo@ejemplo.com</string>
+    <string name="register_usuario">Usuario</string>
+    <string name="register_usuario_placeholder">Nombre de usuario</string>
+    <string name="register_contrasena">Contraseña</string>
+    <string name="register_contrasena_placeholder">Contraseña</string>
+    <string name="register_confirmar_contrasena">Confirmar Contraseña</string>
+    <string name="register_confirmar_contrasena_placeholder">Repite la contraseña</string>
+    <string name="register_telefono">Teléfono</string>
+    <string name="register_telefono_placeholder">Número de teléfono</string>
+    <string name="register_ubicacion_capturada">Ubicación capturada</string>
+    <string name="register_ubicacion_no_capturada">Ubicación no capturada</string>
+    <string name="register_success">Usuario registrado exitosamente</string>
+
+    <!-- Pending Orders -->
+    <string name="pedidos_count">%d pedido(s) en espera</string>
+    <string name="pedidos_empty_title">¡Todos los pedidos están al día!</string>
+    <string name="pedidos_empty_subtitle">Los nuevos pedidos aparecerán aquí automáticamente.</string>
+    <string name="marcar_enviado">Marcar como Enviado</string>
+    <string name="nuevo_pedido_toast">¡Nuevo Pedido Recibido!</string>
+
+    <!-- Confirm Modal -->
+    <string name="confirm_envio_title">Confirmar Envío</string>
+    <string name="confirm_envio_body">Esta acción notificará al cliente que su pedido está en camino.</string>
+
+    <!-- Balances -->
+    <string name="balances_title">Balances</string>
+    <string name="proximamente">Próximamente</string>
+
+    <!-- Historial -->
+    <string name="historial_title">Historial</string>
+
+    <!-- Profile -->
+    <string name="perfil_subtitle">Ordenando la cocina</string>
+    <string name="perfil_info_title">Información del Negocio</string>
+    <string name="perfil_nombre">Nombre</string>
+    <string name="perfil_telegram">ID Bot Telegram</string>
+    <string name="perfil_usuario">Usuario</string>
+
+    <!-- Errors -->
+    <string name="error_username_blank">Ingrese su correo o usuario</string>
+    <string name="error_password_blank">Ingrese su contraseña</string>
+    <string name="error_nombres_blank">Ingrese sus nombres</string>
+    <string name="error_correo_blank">Ingrese su correo electrónico</string>
+    <string name="error_correo_invalid">Formato de correo inválido</string>
+    <string name="error_usuario_blank">Ingrese un nombre de usuario</string>
+    <string name="error_contrasena_blank">Ingrese una contraseña</string>
+    <string name="error_contrasena_mismatch">Las contraseñas no coinciden</string>
+    <string name="error_telefono_blank">Ingrese su teléfono</string>
+    <string name="error_ubicacion">No se pudo capturar la ubicación</string>
+    <string name="error_usuario_existe">El usuario ya existe</string>
+    <string name="error_correo_existe">El correo ya está registrado</string>
+    <string name="error_usuario_no_existe">El usuario no existe</string>
+    <string name="error_contrasena_incorrecta">Contraseña incorrecta</string>
+    <string name="error_login_generico">Error al iniciar sesión</string>
+    <string name="error_register_generico">Error al registrar</string>
+    <string name="error_permiso_ubicacion">Permiso de ubicación denegado</string>
 </resources>

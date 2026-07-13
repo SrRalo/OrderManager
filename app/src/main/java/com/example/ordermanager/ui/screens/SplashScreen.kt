@@ -22,13 +22,13 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
     val alphaAnim = animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000),
+        animationSpec = AnimSpecs.slow,
         label = "alpha"
     )
 
     val scaleAnim = animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0.5f,
-        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        animationSpec = AnimSpecs.slow,
         label = "scale"
     )
 

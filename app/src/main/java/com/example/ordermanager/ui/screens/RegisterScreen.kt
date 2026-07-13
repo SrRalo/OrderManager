@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,15 +23,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.ordermanager.ui.components.AppTextField
+import com.example.ordermanager.ui.components.PrimaryButton
+import com.example.ordermanager.ui.components.ScreenScaffold
 import com.example.ordermanager.ui.theme.*
 import com.example.ordermanager.ui.viewmodel.AuthViewModel
+import com.example.ordermanager.ui.viewmodel.RegisterState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(authViewModel: AuthViewModel) {
-    val uiState by authViewModel.registerUiState.collectAsStateWithLifecycle()
+fun RegisterScreen(
+    authViewModel: AuthViewModel,
+    onBack: () -> Unit,
+    onRegisterSuccess: () -> Unit
+) {
+    val registerState by authViewModel.registerState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val fusedLocationClient: FusedLocationProviderClient = remember {
@@ -61,28 +68,27 @@ fun RegisterScreen(authViewModel: AuthViewModel) {
         }
     }
 
-    LaunchedEffect(uiState.registroExitoso) {
-        if (uiState.registroExitoso) {
+    LaunchedEffect(registerState) {
+        if (registerState is RegisterState.Success) {
             Toast.makeText(context, "Usuario registrado exitosamente", Toast.LENGTH_SHORT).show()
-            authViewModel.navigateToLogin()
+            onRegisterSuccess()
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Registrar Nuevo Usuario") },
-                navigationIcon = {
-                    IconButton(onClick = { authViewModel.navigateToLogin() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
+    val form = if (registerState is RegisterState.Form) registerState as RegisterState.Form else null
+    val errorMessage = when (registerState) {
+        is RegisterState.Form -> form?.errorMessage
+        is RegisterState.Error -> (registerState as RegisterState.Error).message
+        else -> null
+    }
+    val isLoading = registerState is RegisterState.Loading
+
+    ScreenScaffold(
+        title = "Registrar Nuevo Usuario",
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
+            }
         }
     ) { padding ->
         Column(
@@ -96,83 +102,65 @@ fun RegisterScreen(authViewModel: AuthViewModel) {
         ) {
             Spacer(modifier = Modifier.height(Spacing.lg))
 
-            OutlinedTextField(
-                value = uiState.nombres,
+            AppTextField(
+                value = form?.nombres ?: "",
                 onValueChange = { authViewModel.updateRegisterNombres(it) },
-                label = { Text("Nombres") },
-                placeholder = { Text("Nombres completos") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.lg),
-                singleLine = true
+                label = "Nombres",
+                placeholder = "Nombres completos"
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            OutlinedTextField(
-                value = uiState.correo,
+            AppTextField(
+                value = form?.correo ?: "",
                 onValueChange = { authViewModel.updateRegisterCorreo(it) },
-                label = { Text("Correo Electrónico") },
-                placeholder = { Text("correo@ejemplo.com") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.lg),
-                singleLine = true
+                label = "Correo Electrónico",
+                placeholder = "correo@ejemplo.com"
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            OutlinedTextField(
-                value = uiState.usuario,
+            AppTextField(
+                value = form?.usuario ?: "",
                 onValueChange = { authViewModel.updateRegisterUsuario(it) },
-                label = { Text("Usuario") },
-                placeholder = { Text("Nombre de usuario") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.lg),
-                singleLine = true
+                label = "Usuario",
+                placeholder = "Nombre de usuario"
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            OutlinedTextField(
-                value = uiState.contrasena,
+            AppTextField(
+                value = form?.contrasena ?: "",
                 onValueChange = { authViewModel.updateRegisterContrasena(it) },
-                label = { Text("Contraseña") },
-                placeholder = { Text("Contraseña") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.lg),
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true
+                label = "Contraseña",
+                placeholder = "Contraseña",
+                visualTransformation = PasswordVisualTransformation()
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            OutlinedTextField(
-                value = uiState.confirmarContrasena,
+            AppTextField(
+                value = form?.confirmarContrasena ?: "",
                 onValueChange = { authViewModel.updateRegisterConfirmarContrasena(it) },
-                label = { Text("Confirmar Contraseña") },
-                placeholder = { Text("Repite la contraseña") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.lg),
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true
+                label = "Confirmar Contraseña",
+                placeholder = "Repite la contraseña",
+                visualTransformation = PasswordVisualTransformation()
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            OutlinedTextField(
-                value = uiState.telefono,
+            AppTextField(
+                value = form?.telefono ?: "",
                 onValueChange = { authViewModel.updateRegisterTelefono(it) },
-                label = { Text("Teléfono") },
-                placeholder = { Text("Número de teléfono") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.lg),
-                singleLine = true
+                label = "Teléfono",
+                placeholder = "Número de teléfono"
             )
 
             Spacer(modifier = Modifier.height(Spacing.lg))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.lg),
+                shape = Shapes.card,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -186,7 +174,7 @@ fun RegisterScreen(authViewModel: AuthViewModel) {
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = if (ubicacionCapturada) MaterialTheme.colorScheme.primary else TextDisabled
+                        tint = if (ubicacionCapturada) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Column {
@@ -195,21 +183,21 @@ fun RegisterScreen(authViewModel: AuthViewModel) {
                                    else "Ubicación no capturada",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        if (uiState.latitud != null && uiState.longitud != null) {
+                        if (form?.latitud != null && form.longitud != null) {
                             Text(
-                                text = "Lat: %.4f, Lng: %.4f".format(uiState.latitud, uiState.longitud),
+                                text = "Lat: %.4f, Lng: %.4f".format(form.latitud, form.longitud),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
             }
 
-            if (uiState.errorMessage != null) {
+            if (errorMessage != null) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
-                    text = uiState.errorMessage!!,
+                    text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
@@ -219,7 +207,8 @@ fun RegisterScreen(authViewModel: AuthViewModel) {
 
             Spacer(modifier = Modifier.height(Spacing.twoXl))
 
-            Button(
+            PrimaryButton(
+                text = "Guardar",
                 onClick = {
                     if (!ubicacionCapturada) {
                         val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -234,33 +223,12 @@ fun RegisterScreen(authViewModel: AuthViewModel) {
                                 )
                             )
                         }
-                        return@Button
+                        return@PrimaryButton
                     }
                     authViewModel.registrar()
                 },
-                enabled = !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(Radius.lg),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        "Guardar",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White
-                    )
-                }
-            }
+                isLoading = isLoading
+            )
 
             Spacer(modifier = Modifier.height(Spacing.twoXl))
         }

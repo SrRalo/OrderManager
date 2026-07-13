@@ -29,3 +29,14 @@ val TextDisabled = Color(0xFFA8A29E)
 val Border = Color(0xFFE7E5E4)
 val BorderLight = Color(0xFFF5F5F4)
 val Overlay = Color(0x80000000)
+
+// Avatar
+val AvatarBg = Color(0xFFF3F4F6)
+val AvatarIconTint = Color(0xFF9CA3AF)
+
+// Badge Pendiente
+val BadgePendienteBg = Color(0xFFFDF2F8)
+val BadgePendienteText = Color(0xFFBE185D)
+
+// Delivery time
+val DeliveryTimeTint = Color(0xFF92400E)

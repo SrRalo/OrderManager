@@ -5,18 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -24,14 +19,37 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.ordermanager.ui.components.AppTextField
+import com.example.ordermanager.ui.components.PrimaryButton
 import com.example.ordermanager.ui.theme.*
 import com.example.ordermanager.ui.viewmodel.AuthViewModel
+import com.example.ordermanager.ui.viewmodel.LoginState
 
 @Composable
-fun LoginScreen(authViewModel: AuthViewModel) {
-    val uiState by authViewModel.loginUiState.collectAsStateWithLifecycle()
+fun LoginScreen(
+    authViewModel: AuthViewModel,
+    onLoginSuccess: () -> Unit,
+    onNavigateToRegister: () -> Unit
+) {
+    val loginState by authViewModel.loginState.collectAsStateWithLifecycle()
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(authState.currentUser) {
+        if (authState.currentUser != null) {
+            onLoginSuccess()
+        }
+    }
+
+    val formUsername = if (loginState is LoginState.Form) (loginState as LoginState.Form).username else ""
+    val formPassword = if (loginState is LoginState.Form) (loginState as LoginState.Form).password else ""
+    val errorMessage = when (loginState) {
+        is LoginState.Form -> (loginState as LoginState.Form).errorMessage
+        is LoginState.Error -> (loginState as LoginState.Error).message
+        else -> null
+    }
+    val isLoading = loginState is LoginState.Loading
 
     Column(
         modifier = Modifier
@@ -60,55 +78,33 @@ fun LoginScreen(authViewModel: AuthViewModel) {
 
         Spacer(modifier = Modifier.height(Spacing.fourXl))
 
-        OutlinedTextField(
-            value = uiState.username,
+        AppTextField(
+            value = formUsername,
             onValueChange = { authViewModel.updateLoginUsername(it) },
-            label = { Text("Usuario o Correo") },
-            placeholder = { Text("Usuario o Correo") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            shape = RoundedCornerShape(Radius.lg),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-            ),
-            trailingIcon = {
-                Icon(Icons.Default.Person, contentDescription = null, tint = TextSecondary)
-            },
-            singleLine = true
+            label = "Usuario o Correo",
+            placeholder = "Usuario o Correo",
+            leadingIcon = Icons.Default.Person,
+            isError = errorMessage != null
         )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        OutlinedTextField(
-            value = uiState.password,
+        AppTextField(
+            value = formPassword,
             onValueChange = { authViewModel.updateLoginPassword(it) },
-            label = { Text("Contraseña") },
-            placeholder = { Text("Contraseña") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            shape = RoundedCornerShape(Radius.lg),
+            label = "Contraseña",
+            placeholder = "Contraseña",
             visualTransformation = PasswordVisualTransformation(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-            ),
             trailingIcon = {
-                Icon(Icons.Default.Visibility, contentDescription = null, tint = TextSecondary)
+                Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             },
-            singleLine = true
+            isError = errorMessage != null
         )
 
-        if (uiState.errorMessage != null) {
+        if (errorMessage != null) {
             Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
-                text = uiState.errorMessage!!,
+                text = errorMessage,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
@@ -118,42 +114,11 @@ fun LoginScreen(authViewModel: AuthViewModel) {
 
         Spacer(modifier = Modifier.height(Spacing.threeXl))
 
-        Button(
+        PrimaryButton(
+            text = "Ingresar",
             onClick = { authViewModel.login() },
-            enabled = !uiState.isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(Radius.lg),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "Ingresar",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                }
-            }
-        }
+            isLoading = isLoading
+        )
 
         Spacer(modifier = Modifier.height(Spacing.threeXl))
 
@@ -165,10 +130,10 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 }
             },
             style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .padding(bottom = Spacing.twoXl)
-                .clickable { authViewModel.navigateToRegister() }
+                .clickable { onNavigateToRegister() }
         )
     }
 }
@@ -177,6 +142,10 @@ fun LoginScreen(authViewModel: AuthViewModel) {
 @Composable
 fun LoginScreenPreview() {
     OrderManagerTheme {
-        LoginScreen(authViewModel = AuthViewModel(android.app.Application()))
+        LoginScreen(
+            authViewModel = AuthViewModel(android.app.Application()),
+            onLoginSuccess = {},
+            onNavigateToRegister = {}
+        )
     }
 }

@@ -1,6 +1,7 @@
 package com.example.ordermanager.ui.viewmodel
 
 import android.app.Application
+import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ordermanager.data.local.AppDatabase
@@ -12,32 +13,37 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class Screen { SPLASH, WELCOME, LOGIN, HOME, REGISTER }
+sealed interface LoginState {
+    data object Idle : LoginState
+    data class Form(
+        val username: String = "",
+        val password: String = "",
+        val errorMessage: String? = null
+    ) : LoginState
+    data object Loading : LoginState
+    data class Error(val message: String) : LoginState
+}
 
-data class LoginUiState(
-    val username: String = "",
-    val password: String = "",
-    val errorMessage: String? = null,
-    val isLoading: Boolean = false
-)
-
-data class RegisterUiState(
-    val nombres: String = "",
-    val correo: String = "",
-    val usuario: String = "",
-    val contrasena: String = "",
-    val confirmarContrasena: String = "",
-    val telefono: String = "",
-    val latitud: Double? = null,
-    val longitud: Double? = null,
-    val errorMessage: String? = null,
-    val isLoading: Boolean = false,
-    val registroExitoso: Boolean = false
-)
+sealed interface RegisterState {
+    data object Idle : RegisterState
+    data class Form(
+        val nombres: String = "",
+        val correo: String = "",
+        val usuario: String = "",
+        val contrasena: String = "",
+        val confirmarContrasena: String = "",
+        val telefono: String = "",
+        val latitud: Double? = null,
+        val longitud: Double? = null,
+        val errorMessage: String? = null
+    ) : RegisterState
+    data object Loading : RegisterState
+    data class Error(val message: String) : RegisterState
+    data object Success : RegisterState
+}
 
 data class AuthState(
-    val currentUser: UsuarioEntity? = null,
-    val currentScreen: Screen = Screen.SPLASH
+    val currentUser: UsuarioEntity? = null
 )
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
@@ -47,11 +53,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    private val _loginUiState = MutableStateFlow(LoginUiState())
-    val loginUiState: StateFlow<LoginUiState> = _loginUiState.asStateFlow()
+    private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
+    val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
 
-    private val _registerUiState = MutableStateFlow(RegisterUiState())
-    val registerUiState: StateFlow<RegisterUiState> = _registerUiState.asStateFlow()
+    private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Idle)
+    val registerState: StateFlow<RegisterState> = _registerState.asStateFlow()
 
     init {
         val db = AppDatabase.getInstance(application)
@@ -59,35 +65,46 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateLoginUsername(value: String) {
-        _loginUiState.update { it.copy(username = value, errorMessage = null) }
+        val current = _loginState.value
+        if (current is LoginState.Form) {
+            _loginState.update { current.copy(username = value, errorMessage = null) }
+        } else {
+            _loginState.update { LoginState.Form(username = value) }
+        }
     }
 
     fun updateLoginPassword(value: String) {
-        _loginUiState.update { it.copy(password = value, errorMessage = null) }
+        val current = _loginState.value
+        if (current is LoginState.Form) {
+            _loginState.update { current.copy(password = value, errorMessage = null) }
+        } else {
+            _loginState.update { LoginState.Form(password = value) }
+        }
     }
 
     fun login() {
-        val state = _loginUiState.value
+        val state = _loginState.value
+        val form = state as? LoginState.Form ?: return
+        val username = form.username
+        val password = form.password
 
-        if (state.username.isBlank()) {
-            _loginUiState.update { it.copy(errorMessage = "Ingrese su correo o usuario") }
+        if (username.isBlank()) {
+            _loginState.update { LoginState.Form(username = form.username, password = form.password, errorMessage = "Ingrese su correo o usuario") }
             return
         }
-        if (state.password.isBlank()) {
-            _loginUiState.update { it.copy(errorMessage = "Ingrese su contraseña") }
+        if (password.isBlank()) {
+            _loginState.update { LoginState.Form(username = form.username, password = form.password, errorMessage = "Ingrese su contraseña") }
             return
         }
 
-        _loginUiState.update { it.copy(isLoading = true, errorMessage = null) }
+        _loginState.update { LoginState.Loading }
 
         viewModelScope.launch {
-            val result = repository.iniciarSesion(state.username.trim(), state.password)
+            val result = repository.iniciarSesion(username.trim(), password)
             result.fold(
                 onSuccess = { usuario ->
-                    _loginUiState.update { it.copy(isLoading = false) }
-                    _authState.update {
-                        it.copy(currentUser = usuario, currentScreen = Screen.HOME)
-                    }
+                    _authState.update { it.copy(currentUser = usuario) }
+                    _loginState.update { LoginState.Idle }
                 },
                 onFailure = { error ->
                     val msg = when (error.message) {
@@ -95,92 +112,124 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                         "contrasena_incorrecta" -> "Contraseña incorrecta"
                         else -> error.message ?: "Error al iniciar sesión"
                     }
-                    _loginUiState.update { it.copy(isLoading = false, errorMessage = msg) }
+                    _loginState.update { LoginState.Error(msg) }
                 }
             )
         }
     }
 
     fun updateRegisterNombres(value: String) {
-        _registerUiState.update { it.copy(nombres = value, errorMessage = null) }
+        val current = _registerState.value
+        if (current is RegisterState.Form) {
+            _registerState.update { current.copy(nombres = value, errorMessage = null) }
+        } else {
+            _registerState.update { RegisterState.Form(nombres = value) }
+        }
     }
 
     fun updateRegisterCorreo(value: String) {
-        _registerUiState.update { it.copy(correo = value, errorMessage = null) }
+        val current = _registerState.value
+        if (current is RegisterState.Form) {
+            _registerState.update { current.copy(correo = value, errorMessage = null) }
+        } else {
+            _registerState.update { RegisterState.Form(correo = value) }
+        }
     }
 
     fun updateRegisterUsuario(value: String) {
-        _registerUiState.update { it.copy(usuario = value, errorMessage = null) }
+        val current = _registerState.value
+        if (current is RegisterState.Form) {
+            _registerState.update { current.copy(usuario = value, errorMessage = null) }
+        } else {
+            _registerState.update { RegisterState.Form(usuario = value) }
+        }
     }
 
     fun updateRegisterContrasena(value: String) {
-        _registerUiState.update { it.copy(contrasena = value, errorMessage = null) }
+        val current = _registerState.value
+        if (current is RegisterState.Form) {
+            _registerState.update { current.copy(contrasena = value, errorMessage = null) }
+        } else {
+            _registerState.update { RegisterState.Form(contrasena = value) }
+        }
     }
 
     fun updateRegisterConfirmarContrasena(value: String) {
-        _registerUiState.update { it.copy(confirmarContrasena = value, errorMessage = null) }
+        val current = _registerState.value
+        if (current is RegisterState.Form) {
+            _registerState.update { current.copy(confirmarContrasena = value, errorMessage = null) }
+        } else {
+            _registerState.update { RegisterState.Form(confirmarContrasena = value) }
+        }
     }
 
     fun updateRegisterTelefono(value: String) {
-        _registerUiState.update { it.copy(telefono = value, errorMessage = null) }
+        val current = _registerState.value
+        if (current is RegisterState.Form) {
+            _registerState.update { current.copy(telefono = value, errorMessage = null) }
+        } else {
+            _registerState.update { RegisterState.Form(telefono = value) }
+        }
     }
 
     fun updateLocation(lat: Double, lng: Double) {
-        _registerUiState.update { it.copy(latitud = lat, longitud = lng) }
+        val current = _registerState.value
+        if (current is RegisterState.Form) {
+            _registerState.update { current.copy(latitud = lat, longitud = lng) }
+        } else {
+            _registerState.update { RegisterState.Form(latitud = lat, longitud = lng) }
+        }
     }
 
     fun registrar() {
-        val state = _registerUiState.value
+        val state = _registerState.value
+        if (state !is RegisterState.Form) return
 
         if (state.nombres.isBlank()) {
-            _registerUiState.update { it.copy(errorMessage = "Ingrese sus nombres") }
+            _registerState.update { state.copy(errorMessage = "Ingrese sus nombres") }
             return
         }
         if (state.correo.isBlank()) {
-            _registerUiState.update { it.copy(errorMessage = "Ingrese su correo electrónico") }
+            _registerState.update { state.copy(errorMessage = "Ingrese su correo electrónico") }
             return
         }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(state.correo).matches()) {
-            _registerUiState.update { it.copy(errorMessage = "Formato de correo inválido") }
+        if (!Patterns.EMAIL_ADDRESS.matcher(state.correo).matches()) {
+            _registerState.update { state.copy(errorMessage = "Formato de correo inválido") }
             return
         }
         if (state.usuario.isBlank()) {
-            _registerUiState.update { it.copy(errorMessage = "Ingrese un nombre de usuario") }
+            _registerState.update { state.copy(errorMessage = "Ingrese un nombre de usuario") }
             return
         }
         if (state.contrasena.isBlank()) {
-            _registerUiState.update { it.copy(errorMessage = "Ingrese una contraseña") }
+            _registerState.update { state.copy(errorMessage = "Ingrese una contraseña") }
             return
         }
         if (state.contrasena != state.confirmarContrasena) {
-            _registerUiState.update { it.copy(errorMessage = "Las contraseñas no coinciden") }
+            _registerState.update { state.copy(errorMessage = "Las contraseñas no coinciden") }
             return
         }
         if (state.telefono.isBlank()) {
-            _registerUiState.update { it.copy(errorMessage = "Ingrese su teléfono") }
+            _registerState.update { state.copy(errorMessage = "Ingrese su teléfono") }
             return
         }
         if (state.latitud == null || state.longitud == null) {
-            _registerUiState.update { it.copy(errorMessage = "No se pudo capturar la ubicación") }
+            _registerState.update { state.copy(errorMessage = "No se pudo capturar la ubicación") }
             return
         }
 
-        _registerUiState.update { it.copy(isLoading = true, errorMessage = null) }
+        _registerState.update { RegisterState.Loading }
 
         viewModelScope.launch {
             val existeUsuario = repository.existeUsuario(state.usuario.trim())
             if (existeUsuario) {
-                _registerUiState.update {
-                    it.copy(isLoading = false, errorMessage = "El usuario ya existe")
-                }
+                _registerState.update { RegisterState.Error("El usuario ya existe") }
                 return@launch
             }
 
             val existeCorreo = repository.existeCorreo(state.correo.trim())
             if (existeCorreo) {
-                _registerUiState.update {
-                    it.copy(isLoading = false, errorMessage = "El correo ya está registrado")
-                }
+                _registerState.update { RegisterState.Error("El correo ya está registrado") }
                 return@launch
             }
 
@@ -198,44 +247,18 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             val result = repository.registrar(usuario)
             result.fold(
                 onSuccess = {
-                    _registerUiState.update {
-                        it.copy(isLoading = false, registroExitoso = true)
-                    }
+                    _registerState.update { RegisterState.Success }
                 },
                 onFailure = { error ->
-                    _registerUiState.update {
-                        it.copy(isLoading = false, errorMessage = error.message ?: "Error al registrar")
-                    }
+                    _registerState.update { RegisterState.Error(error.message ?: "Error al registrar") }
                 }
             )
         }
     }
 
-    fun navigateToWelcome() {
-        _authState.update { it.copy(currentScreen = Screen.WELCOME) }
-    }
-
-    fun navigateToRegister() {
-        _registerUiState.update { RegisterUiState() }
-        _authState.update { it.copy(currentScreen = Screen.REGISTER) }
-    }
-
-    fun navigateToLogin() {
-        _loginUiState.update { LoginUiState() }
-        _registerUiState.update { RegisterUiState() }
-        _authState.update { it.copy(currentUser = null, currentScreen = Screen.LOGIN) }
-    }
-
-    fun navigateToHome() {
-        _authState.update { it.copy(currentScreen = Screen.HOME) }
-    }
-
     fun logout() {
-        _loginUiState.update { LoginUiState() }
+        _loginState.update { LoginState.Idle }
+        _registerState.update { RegisterState.Idle }
         _authState.update { AuthState() }
-    }
-
-    fun clearLoginError() {
-        _loginUiState.update { it.copy(errorMessage = null) }
     }
 }

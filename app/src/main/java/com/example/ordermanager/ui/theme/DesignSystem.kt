@@ -19,5 +19,6 @@ object Radius {
     val md = 12.dp
     val lg = 16.dp
     val xl = 20.dp
+    val twoXl = 24.dp
     val full = 9999.dp
 }

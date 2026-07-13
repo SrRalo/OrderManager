@@ -12,15 +12,32 @@ import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
-    secondary = PrimaryLight,
-    tertiary = Success,
-    background = TextPrimary,
-    surface = TextPrimary,
     onPrimary = Surface,
+    primaryContainer = PrimaryDark,
+    onPrimaryContainer = PrimaryLight,
+    secondary = Warning,
     onSecondary = Surface,
+    secondaryContainer = WarningDark,
+    onSecondaryContainer = WarningLight,
+    tertiary = Success,
     onTertiary = Surface,
+    tertiaryContainer = SuccessDark,
+    onTertiaryContainer = SuccessLight,
+    background = TextPrimary,
     onBackground = Surface,
+    surface = TextPrimary,
     onSurface = Surface,
+    surfaceVariant = TextSecondary,
+    onSurfaceVariant = SurfaceAlt,
+    outline = Border,
+    outlineVariant = BorderLight,
+    error = Warning,
+    onError = Surface,
+    errorContainer = WarningDark,
+    onErrorContainer = WarningLight,
+    inverseSurface = Surface,
+    inverseOnSurface = TextPrimary,
+    inversePrimary = PrimaryLight,
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -30,13 +47,24 @@ private val LightColorScheme = lightColorScheme(
     onPrimaryContainer = PrimaryDark,
     secondary = Warning,
     onSecondary = Surface,
+    secondaryContainer = WarningLight,
+    onSecondaryContainer = WarningDark,
+    tertiary = Success,
+    onTertiary = Surface,
+    tertiaryContainer = SuccessLight,
+    onTertiaryContainer = SuccessDark,
     background = Background,
     surface = Surface,
     onBackground = TextPrimary,
     onSurface = TextPrimary,
     surfaceVariant = SurfaceAlt,
     onSurfaceVariant = TextSecondary,
-    outline = Border
+    outline = Border,
+    outlineVariant = BorderLight,
+    error = Warning,
+    onError = Surface,
+    errorContainer = WarningLight,
+    onErrorContainer = WarningDark
 )
 
 @Composable

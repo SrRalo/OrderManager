@@ -5,22 +5,29 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.*
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.ordermanager.ui.screens.HomeScreen
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.ordermanager.ui.navigation.NavRoutes
 import com.example.ordermanager.ui.screens.LoginScreen
+import com.example.ordermanager.ui.screens.MainHubScreen
 import com.example.ordermanager.ui.screens.RegisterScreen
 import com.example.ordermanager.ui.screens.SplashScreen
 import com.example.ordermanager.ui.screens.WelcomeScreen
 import com.example.ordermanager.ui.theme.OrderManagerTheme
 import com.example.ordermanager.ui.viewmodel.AuthViewModel
-import com.example.ordermanager.ui.viewmodel.Screen
+import com.example.ordermanager.ui.viewmodel.OrderViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val authViewModel: AuthViewModel by viewModels()
+    private val orderViewModel: OrderViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +39,7 @@ class MainActivity : ComponentActivity() {
             OrderManagerTheme(darkTheme = isDarkMode) {
                 MainApp(
                     authViewModel = authViewModel,
+                    orderViewModel = orderViewModel,
                     isDarkMode = isDarkMode,
                     onToggleTheme = { isDarkMode = !isDarkMode }
                 )
@@ -43,27 +51,100 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainApp(
     authViewModel: AuthViewModel,
+    orderViewModel: OrderViewModel,
     isDarkMode: Boolean,
     onToggleTheme: () -> Unit
 ) {
-    val authState by authViewModel.authState.collectAsStateWithLifecycle()
+    val navController = rememberNavController()
 
-        Crossfade(targetState = authState.currentScreen, label = "ScreenTransition") { screen ->
-        when (screen) {
-            Screen.SPLASH -> SplashScreen(
-                onSplashFinished = { authViewModel.navigateToWelcome() }
+    NavHost(
+        navController = navController,
+        startDestination = NavRoutes.SPLASH
+    ) {
+        composable(
+            route = NavRoutes.SPLASH,
+            enterTransition = { fadeIn() },
+            exitTransition = { fadeOut() }
+        ) {
+            SplashScreen(
+                onSplashFinished = {
+                    navController.navigate(NavRoutes.WELCOME) {
+                        popUpTo(NavRoutes.SPLASH) { inclusive = true }
+                    }
+                }
             )
-            Screen.WELCOME -> WelcomeScreen(
-                onNavigateToLogin = { authViewModel.navigateToLogin() },
-                onNavigateToRegister = { authViewModel.navigateToRegister() }
+        }
+
+        composable(
+            route = NavRoutes.WELCOME,
+            enterTransition = { slideInHorizontally { it / 4 } + fadeIn() },
+            exitTransition = { slideOutHorizontally { it / 4 } + fadeOut() },
+            popEnterTransition = { slideInHorizontally { -it / 4 } + fadeIn() },
+            popExitTransition = { slideOutHorizontally { -it / 4 } + fadeOut() }
+        ) {
+            WelcomeScreen(
+                onNavigateToLogin = {
+                    navController.navigate(NavRoutes.LOGIN)
+                },
+                onNavigateToRegister = {
+                    navController.navigate(NavRoutes.REGISTER)
+                }
             )
-            Screen.LOGIN -> LoginScreen(authViewModel = authViewModel)
-            Screen.HOME -> HomeScreen(
+        }
+
+        composable(
+            route = NavRoutes.LOGIN,
+            enterTransition = { slideInHorizontally { it / 4 } + fadeIn() },
+            exitTransition = { slideOutHorizontally { it / 4 } + fadeOut() },
+            popEnterTransition = { slideInHorizontally { -it / 4 } + fadeIn() },
+            popExitTransition = { slideOutHorizontally { -it / 4 } + fadeOut() }
+        ) {
+            LoginScreen(
                 authViewModel = authViewModel,
-                isDarkMode = isDarkMode,
-                onToggleTheme = onToggleTheme
+                onLoginSuccess = {
+                    navController.navigate(NavRoutes.MAIN_HUB) {
+                        popUpTo(NavRoutes.LOGIN) { inclusive = true }
+                    }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(NavRoutes.REGISTER)
+                }
             )
-            Screen.REGISTER -> RegisterScreen(authViewModel = authViewModel)
+        }
+
+        composable(
+            route = NavRoutes.REGISTER,
+            enterTransition = { slideInHorizontally { it / 4 } + fadeIn() },
+            exitTransition = { slideOutHorizontally { it / 4 } + fadeOut() },
+            popEnterTransition = { slideInHorizontally { -it / 4 } + fadeIn() },
+            popExitTransition = { slideOutHorizontally { -it / 4 } + fadeOut() }
+        ) {
+            RegisterScreen(
+                authViewModel = authViewModel,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onRegisterSuccess = {
+                    navController.popBackStack(NavRoutes.LOGIN, inclusive = false)
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.MAIN_HUB,
+            enterTransition = { slideInHorizontally { it / 4 } + fadeIn() },
+            exitTransition = { slideOutHorizontally { it / 4 } + fadeOut() }
+        ) {
+            MainHubScreen(
+                orderViewModel = orderViewModel,
+                usuario = authViewModel.authState.value.currentUser?.usuario ?: "",
+                onLogout = {
+                    authViewModel.logout()
+                    navController.navigate(NavRoutes.LOGIN) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

@@ -57,6 +57,19 @@ dependencies {
     // Location
     implementation(libs.play.services.location)
 
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
+    // Animation
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.compose.animation.graphics)
+
+    // Lottie
+    implementation(libs.lottie.compose)
+
+    // Coil (image loading)
+    implementation(libs.coil.compose)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
