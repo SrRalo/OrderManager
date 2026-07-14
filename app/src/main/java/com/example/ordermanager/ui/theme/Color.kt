@@ -40,3 +40,10 @@ val BadgePendienteText = Color(0xFFBE185D)
 
 // Delivery time
 val DeliveryTimeTint = Color(0xFF92400E)
+
+// Dark mode specific
+val DarkSurface = Color(0xFF2D2A28)
+val DarkSurfaceVariant = Color(0xFF3D3A38)
+val DarkOnSurfaceVariant = Color(0xFFC8C5C2)
+val DarkOutline = Color(0xFF525252)
+val DarkOutlineVariant = Color(0xFF404040)

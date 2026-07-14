@@ -83,6 +83,8 @@ fun RegisterScreen(
     }
     val isLoading = registerState is RegisterState.Loading
 
+    var termsAccepted by remember { mutableStateOf(false) }
+
     ScreenScaffold(
         title = "Registrar Nuevo Usuario",
         navigationIcon = {
@@ -194,6 +196,24 @@ fun RegisterScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = termsAccepted,
+                    onCheckedChange = { termsAccepted = it },
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+                )
+                Text(
+                    text = "Acepto los términos y condiciones",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
             if (errorMessage != null) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
@@ -210,6 +230,10 @@ fun RegisterScreen(
             PrimaryButton(
                 text = "Guardar",
                 onClick = {
+                    if (!termsAccepted) {
+                        Toast.makeText(context, "Debe aceptar los términos y condiciones", Toast.LENGTH_SHORT).show()
+                        return@PrimaryButton
+                    }
                     if (!ubicacionCapturada) {
                         val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                         val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)

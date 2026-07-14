@@ -19,9 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ordermanager.data.local.entity.PedidoEntity
 import com.example.ordermanager.ui.components.EmptyState
 import com.example.ordermanager.ui.theme.*
+import com.example.ordermanager.ui.viewmodel.OrderViewModel
 import org.json.JSONArray
 
 private data class ProductDetail(
@@ -30,56 +32,12 @@ private data class ProductDetail(
     val precio: Double
 )
 
-private val mockHistory = listOf(
-    PedidoEntity(
-        id = "ORD-0001",
-        cliente = "Elena Rodríguez",
-        direccion = "452 Maple Ave, Suite 12",
-        productos = """[{"nombre":"Pizza Pepperoni","cantidad":1,"precio":18.50},{"nombre":"Coca-Cola","cantidad":1,"precio":2.50}]""",
-        total = 21.0,
-        tiempoEstimado = 12,
-        timestamp = System.currentTimeMillis() - 86400000
-    ),
-    PedidoEntity(
-        id = "ORD-0002",
-        cliente = "Carlos López",
-        direccion = "Calle 5 de Mayo 456, Col. Juárez",
-        productos = """[{"nombre":"Hamburguesa Clásica","cantidad":2,"precio":9.99},{"nombre":"Papas Fritas","cantidad":1,"precio":4.50}]""",
-        total = 24.48,
-        tiempoEstimado = 18,
-        timestamp = System.currentTimeMillis() - 172800000
-    ),
-    PedidoEntity(
-        id = "ORD-0003",
-        cliente = "Ana Martínez",
-        direccion = "Blvd. Independencia 789, Col. Del Valle",
-        productos = """[{"nombre":"Tacos al Pastor","cantidad":4,"precio":3.50},{"nombre":"Refresco de Cola","cantidad":2,"precio":2.00},{"nombre":"Flan Napolitano","cantidad":1,"precio":5.50}]""",
-        total = 23.50,
-        tiempoEstimado = 20,
-        timestamp = System.currentTimeMillis() - 259200000
-    ),
-    PedidoEntity(
-        id = "ORD-0004",
-        cliente = "José Hernández",
-        direccion = "Av. Universidad 321, Col. Roma",
-        productos = """[{"nombre":"Quesadillas","cantidad":3,"precio":4.00},{"nombre":"Agua Natural","cantidad":1,"precio":1.50}]""",
-        total = 13.50,
-        tiempoEstimado = 15,
-        timestamp = System.currentTimeMillis() - 345600000
-    ),
-    PedidoEntity(
-        id = "ORD-0005",
-        cliente = "Sofía Ramírez",
-        direccion = "Calle Hidalgo 654, Col. Condesa",
-        productos = """[{"nombre":"Burrito Supreme","cantidad":1,"precio":12.00},{"nombre":"Papas Fritas Grandes","cantidad":1,"precio":5.00},{"nombre":"Refresco de Cola","cantidad":1,"precio":2.00}]""",
-        total = 19.00,
-        tiempoEstimado = 25,
-        timestamp = System.currentTimeMillis() - 432000000
-    )
-)
-
 @Composable
-fun HistorialScreen() {
+fun HistorialScreen(
+    orderViewModel: OrderViewModel
+) {
+    val uiState by orderViewModel.uiState.collectAsStateWithLifecycle()
+    val completedOrders = uiState.completedOrders
     val expandedIds = remember { mutableStateMapOf<String, Boolean>() }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -94,7 +52,7 @@ fun HistorialScreen() {
             )
         )
 
-        if (mockHistory.isEmpty()) {
+        if (completedOrders.isEmpty()) {
             EmptyState(
                 title = "Sin historial",
                 subtitle = "Los pedidos completados aparecerán aquí.",
@@ -106,7 +64,7 @@ fun HistorialScreen() {
                 contentPadding = PaddingValues(vertical = Spacing.sm)
             ) {
                 items(
-                    items = mockHistory,
+                    items = completedOrders,
                     key = { it.id }
                 ) { order ->
                     val isExpanded = expandedIds[order.id] == true

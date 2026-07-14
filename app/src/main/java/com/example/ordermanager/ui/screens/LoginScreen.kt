@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,6 +52,9 @@ fun LoginScreen(
         else -> null
     }
     val isLoading = loginState is LoginState.Loading
+
+    var passwordVisible by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -94,12 +99,36 @@ fun LoginScreen(
             onValueChange = { authViewModel.updateLoginPassword(it) },
             label = "Contraseña",
             placeholder = "Contraseña",
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(
+                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             },
             isError = errorMessage != null
         )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = rememberMe,
+                onCheckedChange = { rememberMe = it },
+                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+            )
+            Text(
+                text = "Mantener sesión iniciada",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
 
         if (errorMessage != null) {
             Spacer(modifier = Modifier.height(Spacing.sm))

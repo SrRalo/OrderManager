@@ -31,8 +31,6 @@ fun OrderCard(
     order: PedidoEntity,
     onMarcarEnviado: (String) -> Unit
 ) {
-    var showModal by mutableStateOf(false)
-
     val productos = remember(order.productos) {
         try {
             val arr = JSONArray(order.productos)
@@ -77,7 +75,7 @@ fun OrderCard(
         Spacer(modifier = Modifier.height(Spacing.md))
 
         Button(
-            onClick = { showModal = true },
+            onClick = { onMarcarEnviado(order.id) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
@@ -95,16 +93,6 @@ fun OrderCard(
             )
         }
     }
-
-    ConfirmModal(
-        visible = showModal,
-        titulo = "Confirmar Envío",
-        onConfirm = {
-            showModal = false
-            onMarcarEnviado(order.id)
-        },
-        onCancel = { showModal = false }
-    )
 }
 
 @Composable

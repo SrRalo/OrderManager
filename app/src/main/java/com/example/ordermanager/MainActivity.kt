@@ -33,8 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val systemTheme = isSystemInDarkTheme()
-            var isDarkMode by remember { mutableStateOf(systemTheme) }
+            var isDarkMode by remember { mutableStateOf(false) }
 
             OrderManagerTheme(darkTheme = isDarkMode) {
                 MainApp(
@@ -138,6 +137,8 @@ fun MainApp(
             MainHubScreen(
                 orderViewModel = orderViewModel,
                 usuario = authViewModel.authState.value.currentUser?.usuario ?: "",
+                isDarkMode = isDarkMode,
+                onToggleTheme = onToggleTheme,
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate(NavRoutes.LOGIN) {

@@ -1,7 +1,6 @@
 package com.example.ordermanager.ui.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ordermanager.data.local.AppDatabase
@@ -16,6 +15,7 @@ import kotlinx.coroutines.launch
 
 data class OrderUiState(
     val orders: List<PedidoEntity> = emptyList(),
+    val completedOrders: List<PedidoEntity> = emptyList(),
     val newOrderAlert: PedidoEntity? = null
 )
 
@@ -26,45 +26,18 @@ class OrderViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
-    private var orderCounter = 2
+    private var orderCounter = 0
 
     init {
         val db = AppDatabase.getInstance(application)
         repository = PedidoRepository(db.pedidoDao())
-        cargarPedidosIniciales()
         iniciarSimulacion()
-    }
-
-    private fun cargarPedidosIniciales() {
-        val iniciales = listOf(
-            PedidoEntity(
-                id = "ORD-0001",
-                cliente = "Elena Rodríguez",
-                direccion = "452 Maple Ave, Suite 12",
-                productos = """[{"nombre":"Pizza Pepperoni","cantidad":1,"precio":18.50},{"nombre":"Coca-Cola","cantidad":1,"precio":2.50}]""",
-                total = 21.0,
-                tiempoEstimado = 12,
-                notas = "Sin cebolla, por favor",
-                timestamp = System.currentTimeMillis() - 120000
-            ),
-            PedidoEntity(
-                id = "ORD-0002",
-                cliente = "Carlos López",
-                direccion = "Calle 5 de Mayo 456, Col. Juárez",
-                productos = """[{"nombre":"Hamburguesa Clásica","cantidad":2,"precio":9.99},{"nombre":"Papas Fritas","cantidad":1,"precio":4.50}]""",
-                total = 24.48,
-                tiempoEstimado = 18,
-                timestamp = System.currentTimeMillis() - 60000
-            )
-        )
-        _uiState.update { it.copy(orders = iniciales) }
     }
 
     private fun iniciarSimulacion() {
         viewModelScope.launch {
             while (true) {
-                val delay = (4000..12000).random().toLong()
-                delay(delay)
+                delay(10000L)
                 val nuevo = generarPedidoMock()
                 _uiState.update {
                     it.copy(
@@ -72,13 +45,18 @@ class OrderViewModel(application: Application) : AndroidViewModel(application) {
                         newOrderAlert = nuevo
                     )
                 }
-                Log.w("OrderManager", "Nuevo pedido: ${nuevo.id} - ${nuevo.cliente}")
             }
         }
     }
 
     fun marcarEnviado(pedidoId: String) {
-        _uiState.update { it.copy(orders = it.orders.filter { o -> o.id != pedidoId }) }
+        _uiState.update { state ->
+            val order = state.orders.find { it.id == pedidoId } ?: return@update state
+            state.copy(
+                orders = state.orders.filter { it.id != pedidoId },
+                completedOrders = listOf(order) + state.completedOrders
+            )
+        }
     }
 
     fun dismissAlert() {

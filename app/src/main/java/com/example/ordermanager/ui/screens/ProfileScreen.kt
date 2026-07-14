@@ -4,9 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -18,14 +21,56 @@ fun ProfileScreen(
     negocioNombre: String,
     telegramBotId: String,
     usuario: String,
+    isDarkMode: Boolean,
+    onToggleTheme: () -> Unit,
     onLogout: () -> Unit
 ) {
+    var showSettingsMenu by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(Spacing.lg)
     ) {
         Spacer(modifier = Modifier.height(Spacing.twoXl))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Box {
+                IconButton(onClick = { showSettingsMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Configuración",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                DropdownMenu(
+                    expanded = showSettingsMenu,
+                    onDismissRequest = { showSettingsMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(
+                                    text = if (isDarkMode) "Modo Claro" else "Modo Oscuro"
+                                )
+                            }
+                        },
+                        onClick = {
+                            onToggleTheme()
+                            showSettingsMenu = false
+                        }
+                    )
+                }
+            }
+        }
 
         Card(
             modifier = Modifier.fillMaxWidth(),

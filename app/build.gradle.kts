@@ -63,6 +63,7 @@ dependencies {
     // Animation
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.animation.graphics)
+    implementation(libs.androidx.compose.foundation)
 
     // Lottie
     implementation(libs.lottie.compose)

@@ -19,6 +19,8 @@ import com.example.ordermanager.ui.viewmodel.OrderViewModel
 fun MainHubScreen(
     orderViewModel: OrderViewModel,
     usuario: String,
+    isDarkMode: Boolean,
+    onToggleTheme: () -> Unit,
     onLogout: () -> Unit
 ) {
     var currentTab by mutableStateOf(BottomNavRoutes.PEDIDOS)
@@ -45,11 +47,15 @@ fun MainHubScreen(
                         orderViewModel = orderViewModel
                     )
                     BottomNavRoutes.BALANCES -> BalancesScreen()
-                    BottomNavRoutes.HISTORIAL -> HistorialScreen()
+                    BottomNavRoutes.HISTORIAL -> HistorialScreen(
+                        orderViewModel = orderViewModel
+                    )
                     BottomNavRoutes.PERFIL -> ProfileScreen(
                         negocioNombre = "Mi Restaurante",
                         telegramBotId = "@OrderManagerBot",
                         usuario = usuario,
+                        isDarkMode = isDarkMode,
+                        onToggleTheme = onToggleTheme,
                         onLogout = onLogout
                     )
                 }
