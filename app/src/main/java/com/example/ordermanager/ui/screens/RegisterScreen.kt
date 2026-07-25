@@ -31,6 +31,7 @@ import com.example.ordermanager.ui.viewmodel.AuthViewModel
 import com.example.ordermanager.ui.viewmodel.RegisterState
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,7 +239,13 @@ fun RegisterScreen(
                         val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                         val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
                         if (fineGranted == PackageManager.PERMISSION_GRANTED || coarseGranted == PackageManager.PERMISSION_GRANTED) {
-                            capturarUbicacion(fusedLocationClient, authViewModel) { ubicacionCapturada = it }
+                            Toast.makeText(context, "Capturando ubicación...", Toast.LENGTH_SHORT).show()
+                            capturarUbicacion(fusedLocationClient, authViewModel) { exito ->
+                                ubicacionCapturada = exito
+                                if (!exito) {
+                                    Toast.makeText(context, "No se pudo obtener la ubicación. Intente de nuevo.", Toast.LENGTH_LONG).show()
+                                }
+                            }
                         } else {
                             permissionLauncher.launch(
                                 arrayOf(
@@ -264,14 +271,30 @@ private fun capturarUbicacion(
     authViewModel: AuthViewModel,
     onCapturada: (Boolean) -> Unit
 ) {
-    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-        if (location != null) {
-            authViewModel.updateLocation(location.latitude, location.longitude)
-            onCapturada(true)
-        } else {
+    try {
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                authViewModel.updateLocation(location.latitude, location.longitude)
+                onCapturada(true)
+            } else {
+                // Si lastLocation es null, intentamos obtener la ubicación actual (más lento pero más seguro)
+                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener { currLocation ->
+                        if (currLocation != null) {
+                            authViewModel.updateLocation(currLocation.latitude, currLocation.longitude)
+                            onCapturada(true)
+                        } else {
+                            onCapturada(false)
+                        }
+                    }
+                    .addOnFailureListener {
+                        onCapturada(false)
+                    }
+            }
+        }.addOnFailureListener {
             onCapturada(false)
         }
-    }.addOnFailureListener {
+    } catch (e: SecurityException) {
         onCapturada(false)
     }
 }

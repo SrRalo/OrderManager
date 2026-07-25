@@ -1,8 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+
+fun String.escapeForBuildConfig(): String = this.replace("\\", "\\\\").replace("\"", "\\\"")
 
 android {
     namespace = "com.example.ordermanager"
@@ -16,6 +28,15 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        val supabaseUrl = (localProperties.getProperty("SUPABASE_URL")
+            ?: providers.gradleProperty("SUPABASE_URL").orNull
+            ?: "").escapeForBuildConfig()
+        val supabaseAnonKey = (localProperties.getProperty("SUPABASE_ANON_KEY")
+            ?: providers.gradleProperty("SUPABASE_ANON_KEY").orNull
+            ?: "").escapeForBuildConfig()
+
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     buildTypes {
@@ -30,9 +51,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -70,6 +93,17 @@ dependencies {
 
     // Coil (image loading)
     implementation(libs.coil.compose)
+
+    // Supabase
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.auth.kt)
+    implementation(libs.supabase.postgrest.kt)
+    implementation(libs.supabase.realtime.kt)
+    implementation(libs.ktor.client.android)
+    implementation(libs.kotlinx.serialization.json)
+
+    // Core library desugaring (required for some dependencies with minSdk < 26)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

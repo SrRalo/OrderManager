@@ -46,6 +46,13 @@ data class AuthState(
     val currentUser: UsuarioEntity? = null
 )
 
+enum class UserRole {
+    ADMIN,
+    CHEF,
+    MESERO,
+    SUPERVISOR
+}
+
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: UsuarioRepository
@@ -223,15 +230,18 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val existeUsuario = repository.existeUsuario(state.usuario.trim())
             if (existeUsuario) {
-                _registerState.update { RegisterState.Error("El usuario ya existe") }
+                _registerState.update { state.copy(errorMessage = "El usuario ya existe") }
                 return@launch
             }
 
             val existeCorreo = repository.existeCorreo(state.correo.trim())
             if (existeCorreo) {
-                _registerState.update { RegisterState.Error("El correo ya está registrado") }
+                _registerState.update { state.copy(errorMessage = "El correo ya está registrado") }
                 return@launch
             }
+
+            val totalUsuarios = repository.contarUsuarios()
+            val rolRegistro = if (totalUsuarios == 0) UserRole.ADMIN else UserRole.MESERO
 
             val usuario = UsuarioEntity(
                 nombres = state.nombres.trim(),
@@ -241,7 +251,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 telefono = state.telefono.trim(),
                 fechaRegistro = System.currentTimeMillis(),
                 latitud = state.latitud!!,
-                longitud = state.longitud!!
+                longitud = state.longitud!!,
+                rol = rolRegistro.name.lowercase()
             )
 
             val result = repository.registrar(usuario)
@@ -250,15 +261,92 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     _registerState.update { RegisterState.Success }
                 },
                 onFailure = { error ->
-                    _registerState.update { RegisterState.Error(error.message ?: "Error al registrar") }
+                    _registerState.update { state.copy(errorMessage = error.message ?: "Error al registrar") }
                 }
             )
         }
     }
 
     fun logout() {
+        viewModelScope.launch {
+            runCatching { repository.logout() }
+        }
         _loginState.update { LoginState.Idle }
         _registerState.update { RegisterState.Idle }
         _authState.update { AuthState() }
+    }
+
+    fun currentUserRole(): UserRole {
+        val roleValue = _authState.value.currentUser?.rol?.trim().orEmpty().lowercase()
+        return when (roleValue) {
+            "admin" -> UserRole.ADMIN
+            "chef" -> UserRole.CHEF
+            "supervisor" -> UserRole.SUPERVISOR
+            else -> UserRole.MESERO
+        }
+    }
+
+    fun canCreateUsers(): Boolean = currentUserRole() == UserRole.ADMIN
+
+    fun canAccessTab(route: String): Boolean {
+        val role = currentUserRole()
+        return when (role) {
+            UserRole.ADMIN -> true
+            UserRole.SUPERVISOR -> route != "gestionUsuarios"
+            UserRole.CHEF -> route == "pedidos" || route == "historial" || route == "perfil"
+            UserRole.MESERO -> route == "crearPedido" || route == "historial" || route == "perfil"
+        }
+    }
+
+    fun createUserByAdmin(
+        nombres: String,
+        correo: String,
+        usuario: String,
+        telefono: String,
+        contrasenaTemporal: String,
+        rol: UserRole,
+        onResult: (Result<Long>) -> Unit
+    ) {
+        if (!canCreateUsers()) {
+            onResult(Result.failure(IllegalStateException("Solo admin puede crear usuarios")))
+            return
+        }
+
+        if (nombres.isBlank() || correo.isBlank() || usuario.isBlank() || telefono.isBlank() || contrasenaTemporal.isBlank()) {
+            onResult(Result.failure(IllegalArgumentException("Completa todos los campos")))
+            return
+        }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(correo.trim()).matches()) {
+            onResult(Result.failure(IllegalArgumentException("Correo inválido")))
+            return
+        }
+
+        viewModelScope.launch {
+            if (repository.existeUsuario(usuario.trim())) {
+                onResult(Result.failure(IllegalArgumentException("El usuario ya existe")))
+                return@launch
+            }
+
+            if (repository.existeCorreo(correo.trim())) {
+                onResult(Result.failure(IllegalArgumentException("El correo ya está registrado")))
+                return@launch
+            }
+
+            val current = _authState.value.currentUser
+            val nuevoUsuario = UsuarioEntity(
+                nombres = nombres.trim(),
+                correo = correo.trim(),
+                usuario = usuario.trim(),
+                contrasena = contrasenaTemporal,
+                telefono = telefono.trim(),
+                fechaRegistro = System.currentTimeMillis(),
+                latitud = current?.latitud ?: 0.0,
+                longitud = current?.longitud ?: 0.0,
+                rol = rol.name.lowercase()
+            )
+
+            onResult(repository.registrar(nuevoUsuario))
+        }
     }
 }

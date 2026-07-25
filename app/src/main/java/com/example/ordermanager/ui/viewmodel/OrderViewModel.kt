@@ -1,11 +1,12 @@
 package com.example.ordermanager.ui.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.ordermanager.data.local.AppDatabase
+import com.example.ordermanager.backend.data.repository.SupabasePedidoRepository
 import com.example.ordermanager.data.local.entity.PedidoEntity
-import com.example.ordermanager.data.repository.PedidoRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,99 +17,160 @@ import kotlinx.coroutines.launch
 data class OrderUiState(
     val orders: List<PedidoEntity> = emptyList(),
     val completedOrders: List<PedidoEntity> = emptyList(),
-    val newOrderAlert: PedidoEntity? = null
+    val newOrderAlert: PedidoEntity? = null,
+    val pendingConfirmOrders: Map<String, PedidoEntity> = emptyMap(),
+    val confirmTimers: Map<String, Int> = emptyMap()
 )
 
 class OrderViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository: PedidoRepository
+    private val repository = SupabasePedidoRepository.getInstance()
 
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
-    private var orderCounter = 0
+    private val sendJobs = mutableMapOf<String, Job>()
+    private val cancelledOrders = mutableSetOf<String>()
+    private var pollingJob: Job? = null
 
     init {
-        val db = AppDatabase.getInstance(application)
-        repository = PedidoRepository(db.pedidoDao())
-        iniciarSimulacion()
+        startPollingPedidos()
+        collectLocalOrders()
     }
 
-    private fun iniciarSimulacion() {
+    private fun collectLocalOrders() {
         viewModelScope.launch {
+            repository.localOrders.collect { localOrder ->
+                _uiState.update { state ->
+                    // Add the local order to the top of the list if not already there
+                    if (state.orders.none { it.id == localOrder.id }) {
+                        state.copy(
+                            orders = listOf(localOrder) + state.orders,
+                            newOrderAlert = localOrder
+                        )
+                    } else {
+                        state
+                    }
+                }
+            }
+        }
+    }
+
+    private fun startPollingPedidos() {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
             while (true) {
-                delay(10000L)
-                val nuevo = generarPedidoMock()
-                _uiState.update {
-                    it.copy(
-                        orders = it.orders + nuevo,
-                        newOrderAlert = nuevo
+                refreshPedidos()
+                delay(5000L)
+            }
+        }
+    }
+
+    fun refreshPedidos() {
+        viewModelScope.launch {
+            runCatching {
+                val pendingFromRepo = repository.fetchPedidosPendientes()
+                val completedFromRepo = repository.fetchPedidosCompletados()
+                
+                _uiState.update { state ->
+                    // 1. Remove duplicates from repo lists just in case
+                    val pendingUnique = pendingFromRepo.distinctBy { it.id }
+                    val completedUnique = completedFromRepo.distinctBy { it.id }
+                    
+                    // 2. Filter out orders that are currently in the "undo" state (pending confirmation)
+                    // This prevents them from appearing in BOTH lists simultaneously
+                    val filteredPending = pendingUnique.filter { it.id !in state.pendingConfirmOrders.keys }
+                    
+                    // 3. Detect new orders for the alert
+                    val currentPendingIds = state.orders.map { it.id }.toSet()
+                    val newOrder = filteredPending.firstOrNull { it.id !in currentPendingIds }
+                    
+                    state.copy(
+                        orders = filteredPending,
+                        completedOrders = completedUnique,
+                        newOrderAlert = newOrder
                     )
                 }
             }
         }
     }
 
-    fun marcarEnviado(pedidoId: String) {
+    fun startSendConfirmation(orderId: String) {
         _uiState.update { state ->
-            val order = state.orders.find { it.id == pedidoId } ?: return@update state
+            val order = state.orders.find { it.id == orderId } ?: return@update state
             state.copy(
-                orders = state.orders.filter { it.id != pedidoId },
-                completedOrders = listOf(order) + state.completedOrders
+                orders = state.orders.filter { it.id != orderId },
+                pendingConfirmOrders = state.pendingConfirmOrders + (orderId to order),
+                confirmTimers = state.confirmTimers + (orderId to 3)
             )
+        }
+
+        val job = viewModelScope.launch {
+            try {
+                for (remaining in 2 downTo 1) {
+                    delay(1000)
+                    _uiState.update { state ->
+                        if (!state.confirmTimers.containsKey(orderId)) return@update state
+                        state.copy(confirmTimers = state.confirmTimers + (orderId to remaining))
+                    }
+                }
+                delay(1000)
+
+                if (cancelledOrders.contains(orderId)) return@launch
+                try {
+                    repository.marcarCompletado(orderId)
+
+                    _uiState.update { state ->
+                        val updatedPending = state.pendingConfirmOrders - orderId
+                        val updatedTimers = state.confirmTimers - orderId
+                        state.copy(
+                            pendingConfirmOrders = updatedPending,
+                            confirmTimers = updatedTimers
+                        )
+                    }
+                    refreshPedidos()
+                } catch (e: Exception) {
+                    // If marking as completed fails, return the order to the pending list
+                    _uiState.update { state ->
+                        val order = state.pendingConfirmOrders[orderId] ?: return@update state
+                        val updatedPending = state.pendingConfirmOrders - orderId
+                        val updatedTimers = state.confirmTimers - orderId
+                        state.copy(
+                            orders = listOf(order) + state.orders,
+                            pendingConfirmOrders = updatedPending,
+                            confirmTimers = updatedTimers
+                        )
+                    }
+                    // Re-throw if we want the calling code to handle it, or just log it
+                    // For now, we'll just log it since we've recovered the state
+                    Log.e("OrderViewModel", "Failed to mark order as completed: $orderId", e)
+                }
+            } finally {
+                sendJobs.remove(orderId)
+            }
+        }
+        sendJobs[orderId] = job
+    }
+
+    fun cancelSend(orderId: String) {
+        cancelledOrders.add(orderId)
+        sendJobs[orderId]?.cancel()
+        sendJobs.remove(orderId)
+        _uiState.update { state ->
+            val order = state.pendingConfirmOrders[orderId] ?: return@update state
+            state.copy(
+                pendingConfirmOrders = state.pendingConfirmOrders - orderId,
+                confirmTimers = state.confirmTimers - orderId,
+                orders = listOf(order) + state.orders
+            )
+        }
+        viewModelScope.launch {
+            delay(5000)
+            cancelledOrders.remove(orderId)
         }
     }
 
     fun dismissAlert() {
         _uiState.update { it.copy(newOrderAlert = null) }
-    }
-
-    private fun generarPedidoMock(): PedidoEntity {
-        val clientes = listOf(
-            "María García", "Carlos López", "Ana Martínez", "José Hernández",
-            "Sofía Ramírez", "Luis Torres", "Valentina Ortiz", "Diego Castillo"
-        )
-        val direcciones = listOf(
-            "Av. Reforma 123, Col. Centro", "Calle 5 de Mayo 456, Col. Juárez",
-            "Blvd. Independencia 789, Col. Del Valle", "Av. Universidad 321, Col. Roma",
-            "Calle Hidalgo 654, Col. Condesa", "Av. Insurgentes 987, Col. Polanco"
-        )
-        val productosBase = listOf(
-            "Hamburguesa Clásica" to 2, "Papas Fritas Grandes" to 1,
-            "Pizza Pepperoni" to 1, "Tacos al Pastor" to 4,
-            "Ensalada César" to 1, "Refresco de Cola" to 2,
-            "Agua Natural" to 1, "Flan Napolitano" to 2,
-            "Quesadillas" to 3, "Burrito Supreme" to 1
-        )
-
-        orderCounter++
-        val numProductos = (1..3).random()
-        val seleccionados = productosBase.shuffled().take(numProductos)
-        val precios = seleccionados.map { (_, cant) ->
-            cant * ((40..120).random())
-        }
-        val productosJson = buildString {
-            append("[")
-            seleccionados.forEachIndexed { i, (nombre, cantidad) ->
-                if (i > 0) append(",")
-                val precio = precios[i]
-                append("""{"nombre":"$nombre","cantidad":$cantidad,"precio":$precio}""")
-            }
-            append("]")
-        }
-        val total = precios.sum().toDouble()
-        val tiempo = (10..30).random()
-        val notas = if ((0..9).random() > 5) "Sin cebolla, por favor" else null
-
-        return PedidoEntity(
-            id = "ORD-${String.format("%04d", orderCounter)}",
-            cliente = clientes.random(),
-            direccion = direcciones.random(),
-            productos = productosJson,
-            total = total,
-            tiempoEstimado = tiempo,
-            notas = notas,
-            timestamp = System.currentTimeMillis()
-        )
     }
 }

@@ -13,6 +13,9 @@ interface UsuarioDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertar(usuario: UsuarioEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun guardarOReemplazar(usuario: UsuarioEntity): Long
+
     @Query("SELECT * FROM usuarios WHERE usuario = :username OR correo = :username LIMIT 1")
     suspend fun obtenerPorUsuarioOCorreo(username: String): UsuarioEntity?
 
@@ -25,6 +28,12 @@ interface UsuarioDao {
     @Query("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1")
     suspend fun obtenerPorCorreo(correo: String): UsuarioEntity?
 
+    @Query("SELECT * FROM usuarios WHERE supabase_id = :supabaseId LIMIT 1")
+    suspend fun obtenerPorSupabaseId(supabaseId: String): UsuarioEntity?
+
     @Query("SELECT * FROM usuarios")
     fun obtenerTodos(): Flow<List<UsuarioEntity>>
+
+    @Query("SELECT COUNT(*) FROM usuarios")
+    suspend fun contarUsuarios(): Int
 }

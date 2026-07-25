@@ -15,6 +15,8 @@ import androidx.room.PrimaryKey
 data class UsuarioEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    @ColumnInfo(name = "supabase_id")
+    val supabaseId: String? = null,
     val nombres: String,
     @ColumnInfo(name = "correo")
     val correo: String,
@@ -26,5 +28,6 @@ data class UsuarioEntity(
     @ColumnInfo(name = "fecha_registro")
     val fechaRegistro: Long,
     val latitud: Double,
-    val longitud: Double
+    val longitud: Double,
+    val rol: String
 )

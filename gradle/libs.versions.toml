@@ -7,6 +7,7 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 kotlin = "2.2.10"
+kotlinSerialization = "2.2.10"
 composeBom = "2025.02.00"
 room = "2.7.1"
 ksp = "2.2.10-2.0.2"
@@ -16,6 +17,9 @@ navigationCompose = "2.8.6"
 lottieCompose = "6.6.2"
 coilCompose = "2.7.0"
 composeAnimation = "1.7.8"
+supabase = "3.1.1"
+ktor = "3.3.1"
+desugarJdkLibs = "2.1.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,8 +64,23 @@ lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", versio
 # Coil (image loading)
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
 
+# Serialization
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.9.0" }
+
+# Supabase
+supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
+supabase-auth-kt = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
+supabase-postgrest-kt = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
+supabase-realtime-kt = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
+
+# Ktor engine for Android
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+
+# Java desugaring for SDK < 26
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinSerialization" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-

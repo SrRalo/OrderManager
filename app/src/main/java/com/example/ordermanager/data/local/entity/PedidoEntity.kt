@@ -13,5 +13,6 @@ data class PedidoEntity(
     val total: Double,
     val tiempoEstimado: Int,
     val notas: String? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val origen: String
 )

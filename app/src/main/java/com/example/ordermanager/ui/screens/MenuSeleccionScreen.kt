@@ -1,47 +1,64 @@
 package com.example.ordermanager.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ordermanager.ui.components.MenuItemCard
 import com.example.ordermanager.ui.components.PrimaryButton
 import com.example.ordermanager.ui.components.ScreenScaffold
-import com.example.ordermanager.ui.menu.MenuImages
 import com.example.ordermanager.ui.theme.Background
 import com.example.ordermanager.ui.theme.Primary
+import com.example.ordermanager.ui.theme.Spacing
+import com.example.ordermanager.ui.viewmodel.MenuViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MenuSeleccionScreen(onBack: () -> Unit) {
-    var cartCount by remember { mutableStateOf(0) }
-    var totalPrice by remember { mutableDoubleStateOf(0.0) }
+fun MenuSeleccionScreen(
+    onBack: () -> Unit,
+    meseroId: String?,
+    menuViewModel: MenuViewModel
+) {
+    val uiState = menuViewModel.uiState.collectAsStateWithLifecycle().value
 
-    // Mock data for now
-    val menuItems = listOf(
-        MenuItemData("Hamburguesa Clásica", 12.50, MenuImages.getImageResId("Hamburguesa Clásica")),
-        MenuItemData("Papas Fritas Grandes", 4.50, MenuImages.getImageResId("Papas Fritas Grandes")),
-        MenuItemData("Pizza Pepperoni", 15.00, MenuImages.getImageResId("Pizza Pepperoni")),
-        MenuItemData("Tacos al Pastor", 9.00, MenuImages.getImageResId("Tacos al Pastor")),
-        MenuItemData("Ensalada César", 8.50, MenuImages.getImageResId("Ensalada César"))
-    )
+    LaunchedEffect(meseroId) {
+        menuViewModel.setMeseroId(meseroId)
+        menuViewModel.loadMenu()
+        menuViewModel.limpiarCarrito()
+    }
+
+    val cartCount = uiState.cantidades.values.sum()
+    val totalPrice = menuViewModel.getTotalCarrito()
 
     ScreenScaffold(
-        title = "Nuevo Pedido",
+        title = null,
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
             }
         },
         bottomBar = {
@@ -63,7 +80,7 @@ fun MenuSeleccionScreen(onBack: () -> Unit) {
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = Primary)
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                                 Text(
                                     text = "$cartCount ítems en el carrito",
                                     fontWeight = FontWeight.Medium
@@ -79,7 +96,8 @@ fun MenuSeleccionScreen(onBack: () -> Unit) {
                         Spacer(modifier = Modifier.height(12.dp))
                         PrimaryButton(
                             text = "Confirmar Pedido",
-                            onClick = { /* Acción de enviar pedido */ }
+                            onClick = { menuViewModel.enviarPedido() },
+                            isLoading = uiState.isLoading
                         )
                     }
                 }
@@ -92,66 +110,46 @@ fun MenuSeleccionScreen(onBack: () -> Unit) {
                 .padding(padding)
                 .background(Background)
         ) {
-            // Categorías (Chips horizontales simplificados)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val categories = listOf("Todos", "Hamburguesas", "Pizzas", "Bebidas", "Postres")
-                categories.forEach { category ->
-                    FilterChip(
-                        selected = category == "Todos",
-                        onClick = { },
-                        label = { Text(category) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary,
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
+            Text(
+                text = "Menú",
+                style = MaterialTheme.typography.displayMedium,
+                modifier = Modifier.padding(top = Spacing.xl, bottom = Spacing.lg, start = Spacing.lg, end = Spacing.lg)
+            )
+
+            if (uiState.error != null) {
+                Text(
+                    text = uiState.error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(Spacing.md))
             }
 
-            Text(
-                text = "Selecciona los platos",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            if (uiState.pedidoEnviado) {
+                Text(
+                    text = "Pedido enviado a cocina",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(Spacing.md))
+            }
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 100.dp)
+                contentPadding = PaddingValues(bottom = 100.dp, start = 16.dp, end = 16.dp)
             ) {
-                items(menuItems) { item ->
-                    var cantidad by remember { mutableIntStateOf(0) }
+                items(uiState.itemsDisponibles) { item ->
                     MenuItemCard(
                         nombre = item.nombre,
                         precio = item.precio,
-                        imagenRes = item.imagenRes,
-                        cantidad = cantidad,
-                        onAdd = {
-                            cantidad++
-                            cartCount++
-                            totalPrice += item.precio
-                        },
-                        onRemove = {
-                            if (cantidad > 0) {
-                                cantidad--
-                                cartCount--
-                                totalPrice -= item.precio
-                            }
-                        }
+                        imagenRes = menuViewModel.getImagenRes(item.imagenRef),
+                        cantidad = menuViewModel.getCantidad(item.id),
+                        onAdd = { menuViewModel.addToCart(item.id) },
+                        onRemove = { menuViewModel.removeFromCart(item.id) }
                     )
                 }
             }
         }
     }
 }
-
-data class MenuItemData(
-    val nombre: String,
-    val precio: Double,
-    val imagenRes: Int
-)

@@ -51,7 +51,7 @@ private val mockTransactions = listOf(
 @Composable
 fun BalancesScreen() {
     val today = remember {
-        SimpleDateFormat("EEEE, d MMMM yyyy", Locale("es", "MX")).format(Date())
+        SimpleDateFormat("EEEE, d MMMM yyyy", Locale.forLanguageTag("es-MX")).format(Date())
     }
 
     Column(

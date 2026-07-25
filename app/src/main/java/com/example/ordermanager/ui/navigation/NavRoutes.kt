@@ -6,6 +6,9 @@ object NavRoutes {
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val MAIN_HUB = "mainHub"
+    const val CREAR_PEDIDO = "crearPedido"
+    const val GESTION_MENU = "gestionMenu"
+    const val GESTION_USUARIOS = "gestionUsuarios"
 }
 
 object BottomNavRoutes {
@@ -13,4 +16,7 @@ object BottomNavRoutes {
     const val BALANCES = "balances"
     const val HISTORIAL = "historial"
     const val PERFIL = "perfil"
+    const val CREAR_PEDIDO = "crearPedido"
+    const val GESTION_MENU = "gestionMenu"
+    const val GESTION_USUARIOS = "gestionUsuarios"
 }
